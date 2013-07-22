@@ -1,0 +1,7 @@
+{
+	"name": "valet-io-event-queue-parser",
+	"private": "true",
+	"dependencies": {
+		"firebase": "0.6.0"
+	}
+}
