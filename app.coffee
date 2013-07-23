@@ -43,10 +43,9 @@ claimEvent = (event, cb) ->
 		relationshipName: event.organization
 
 	relationship['phone'] = event.contact_phone if event.contact_phone
-
+	
 	getApiKey event.claimed, (key) ->
-		console.log key
-		r = request.post "https://www.relateiq.com/api/v1/entitylists/#{riqListId}/addrelationship", {
+		request.post "https://www.relateiq.com/api/v1/entitylists/#{riqListId}/addrelationship", {
 			headers:
 				Authorization: "Basic #{new Buffer("apitoken:" + key).toString('base64')}"
 			form: relationship	
@@ -55,11 +54,19 @@ claimEvent = (event, cb) ->
 			body = JSON.parse body
 			if body.success
 				cb()
+				request.post "https://www.relateiq.com/api/v1/entitylists/#{riqListId}/commentbyemail", {
+					headers:
+						Authorization: "Basic #{new Buffer("apitoken:" + key).toString('base64')}"
+					form:
+						relationshipemail: relationship.email
+						body: JSON.stringify(event, null, '\t');
+				}
+				, (err, res, body) ->
+					body = JSON.parse body
+					console.log body unless body.success
 			else
 				console.log "Saving to RelateIQ failed"
 				console.log body
-
-		console.log r
 
 
 pruneOldEvents = () ->
@@ -85,7 +92,9 @@ eventsRef.on 'child_changed', (snapshot) ->
 		claimedEventsRef.push event
 
 claimedEventsRef.on 'child_added', (snapshot) ->
-	claimEvent snapshot.val(), () ->
+	unless snapshot.val().inserted
+		claimEvent snapshot.val(), () ->
+			claimedEventsRef.child(snapshot.name()).child('inserted').set true
 
 eventsRef.on 'value', (snapshot) ->
 	events = snapshot.val()
