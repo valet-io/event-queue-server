@@ -1,8 +1,9 @@
 {
-	"name": "valet-io-event-queue-parser",
-	"private": "true",
-	"dependencies": {
-		"firebase": "0.6.0",
-		"iron_mq": "0.2.0"
-	}
+  "name": "valet-io-event-queue-parser",
+  "private": "true",
+  "dependencies": {
+    "firebase": "0.6.0",
+    "iron_mq": "0.2.0",
+    "request": "~2.23.0"
+  }
 }
