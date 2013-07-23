@@ -5,5 +5,13 @@
     "firebase": "0.6.0",
     "iron_mq": "0.2.0",
     "request": "~2.23.0"
+  },
+  "subdomain": "valet-io-event-leads",
+  "scripts": {
+    "start": "coffee app.coffee"
+  },
+  "version": "0.0.1-1",
+  "engines": {
+    "node": "0.8.x"
   }
 }
