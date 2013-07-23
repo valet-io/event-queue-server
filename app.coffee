@@ -1,6 +1,7 @@
 Firebase = require 'firebase'
 IronMQ = require 'iron_mq'
 request = require 'request'
+http = require 'http'
 
 firebaseConfig = require './firebase.json'
 eventsRef = new Firebase(firebaseConfig.endpoint + firebaseConfig.collection)
@@ -43,7 +44,7 @@ claimEvent = (event, cb) ->
 		relationshipName: event.organization
 
 	relationship['phone'] = event.contact_phone if event.contact_phone
-	
+
 	getApiKey event.claimed, (key) ->
 		request.post "https://www.relateiq.com/api/v1/entitylists/#{riqListId}/addrelationship", {
 			headers:
@@ -108,3 +109,8 @@ setInterval () ->
 , 86400000
 
 pruneOldEvents()
+
+server = http.createServer (req, res) ->
+	res.end 200
+
+server.listen 8080
