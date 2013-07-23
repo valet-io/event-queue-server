@@ -1,5 +1,6 @@
 Firebase = require 'firebase'
 IronMQ = require 'iron_mq'
+request = require 'request'
 
 firebaseConfig = require './firebase.json'
 eventsRef = new Firebase(firebaseConfig.endpoint + firebaseConfig.collection)
@@ -36,12 +37,30 @@ deleteQueueItem = (id) ->
 claimEvent = (event, cb) ->
 	riqListId = '51e720bbe4b0135ef0caa976'
 
-	apiKey = apiKeys[event.claimed]
-
 	relationship =
 		firstName: event.contact_name
 		email: event.contact_email
 		relationshipName: event.organization
+
+	relationship['phone'] = event.contact_phone if event.contact_phone
+
+	getApiKey event.claimed, (key) ->
+		console.log key
+		r = request.post "https://www.relateiq.com/api/v1/entitylists/#{riqListId}/addrelationship", {
+			headers:
+				Authorization: "Basic #{new Buffer("apitoken:" + key).toString('base64')}"
+			form: relationship	
+		}
+		, (err, res, body) ->
+			body = JSON.parse body
+			if body.success
+				cb()
+			else
+				console.log "Saving to RelateIQ failed"
+				console.log body
+
+		console.log r
+
 
 pruneOldEvents = () ->
 	getEvents (events) ->
@@ -54,21 +73,22 @@ getEvents = (cb) ->
 	eventsRef.once 'value', (snapshot) ->
 		cb snapshot.val()
 
+getApiKey = (username, cb) ->
+	apiKeysRef.once 'value', (snapshot) ->
+		cb snapshot.val()[username]
+
 eventsRef.on 'child_changed', (snapshot) ->
 	event = snapshot.val()
 	id = snapshot.name()
 	if event.claimed
 		eventsRef.child(id).remove()
-		claimedEventsRef.push() event
+		claimedEventsRef.push event
 
 claimedEventsRef.on 'child_added', (snapshot) ->
 	claimEvent snapshot.val(), () ->
 
 eventsRef.on 'value', (snapshot) ->
 	events = snapshot.val()
-
-apiKeysRef.on 'value', (snapshot) ->
-	apiKeys = snapshot.val()
 
 setInterval () ->
 	readNextEvent insertEvent
