@@ -1,8 +1,9 @@
 Firebase = require 'firebase'
-IronMQ = require('iron_mq')
+IronMQ = require 'iron_mq'
 
 firebaseConfig = require './firebase.json'
-eventsRef = new Firebase(firebaseConfig.endpoint)
+eventsRef = new Firebase(firebaseConfig.endpoint + firebaseConfig.collection)
+claimedEventsRef = new Firebase(firebaseConfig.endpoint + 'claimed-events')
 
 ironClient = new IronMQ.Client()
 eventsQueue = ironClient.queue "scraped-events"
@@ -13,12 +14,9 @@ eventsRef.auth firebaseConfig.secret, (err) ->
 	else
 		console.log ">> Authentication failed"
 
-eventsRef.on 'value', (snapshot) ->
-	events = snapshot.val()
-
 readNextEvent = (cb) ->	
 	eventsQueue.get {}, (err, body) ->
-		unless err
+		unless err || typeof body == 'undefined'
 			cb body
 
 insertEvent = (message) ->
@@ -32,6 +30,20 @@ insertEvent = (message) ->
 deleteQueueItem = (id) ->
 	eventsQueue.del id, (err, body) ->
 		console.log err if err
+
+claimEvent = (event) ->
+	# TODO: Insert event 
+
+eventsRef.on 'child_changed', (snapshot) ->
+	event = snapshot.val()
+	id = snapshot.name()
+	if event.claimed
+		claimedEventRef = new Firebase(firebaseConfig.endpoint + firebaseConfig.collection + '/' + id)
+		claimedEventRef.remove()
+		claimedEventsRef.push() event
+
+eventsRef.on 'value', (snapshot) ->
+	events = snapshot.val()
 
 setInterval () ->
 	readNextEvent insertEvent
